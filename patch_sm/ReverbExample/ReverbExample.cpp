@@ -12,28 +12,44 @@ void AudioCallback(AudioHandle::InputBuffer  in,
                    AudioHandle::OutputBuffer out,
                    size_t                    size)
 {
-    patch.ProcessAnalogControls();
+    patch.ProcessAllControls();
 
-    /** Update Params with the four knobs */
+    /** Update time from knob CV_1 (0, 1) */
     float time_knob = patch.GetAdcValue(CV_1);
-    float time      = fmap(time_knob, 0.3f, 0.99f);
+    /** Read from CV_5 (-1, 1) and add one so its (0, 2) */
+    float time_cv   = patch.GetAdcValue(CV_5) + 1;
+    /** Combine and set max and min for time value */
+    float time      = fmap((time_knob * time_cv), 0.3f, 0.99f);
 
+    /** Update dampening from knob CV_2 (0, 1) */
     float damp_knob = patch.GetAdcValue(CV_2);
-    float damp      = fmap(damp_knob, 1000.f, 19000.f, Mapping::LOG);
+    /** Read from CV_6 (-1, 1) and add one so its (0, 2) */
+    float damp_cv   = patch.GetAdcValue(CV_6) + 1;
+    /** Combine and set max and min for damp value with log response */
+    float damp      = fmap(
+        (damp_knob * damp_cv),
+        1000.f,
+        19000.f,
+        Mapping::LOG);
 
-    float in_level = patch.GetAdcValue(CV_3);
-
-    float send_level = patch.GetAdcValue(CV_4);
+    /** Dry/Wet for the Reverb */
+    float dry_wet = fmap(
+        patch.GetAdcValue(CV_3),
+        0.f,
+        1.f,
+        Mapping::LINEAR);
 
     reverb.SetFeedback(time);
     reverb.SetLpFreq(damp);
 
+    /** For each sample, calculate the output */
     for(size_t i = 0; i < size; i++)
     {
-        float dryl  = IN_L[i] * in_level;
-        float dryr  = IN_R[i] * in_level;
-        float sendl = IN_L[i] * send_level;
-        float sendr = IN_R[i] * send_level;
+        float dryl  = IN_L[i] * (1.f - dry_wet);
+        float dryr  = IN_R[i] * (1.f - dry_wet);
+        float sendl = IN_L[i] * dry_wet;
+        float sendr = IN_R[i] * dry_wet;
+
         float wetl, wetr;
         reverb.Process(sendl, sendr, &wetl, &wetr);
         OUT_L[i] = dryl + wetl;
