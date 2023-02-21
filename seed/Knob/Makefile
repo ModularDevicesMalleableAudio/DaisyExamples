@@ -2,7 +2,7 @@
 TARGET = Knob
 
 # Sources
-CPP_SOURCES = Knob.cpp
+CPP_SOURCES = Knob2.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy
