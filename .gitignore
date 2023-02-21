@@ -19,9 +19,13 @@ _MACOSX/
 .build/
 .metadata/
 .build_Debug/
+cmake-build-debug/
+.idea/
+CMakeLists.txt
 *.d
 .build_Release/
 Intermediate/
+.idea/
 *.plist
 *.o
 *.sdf
