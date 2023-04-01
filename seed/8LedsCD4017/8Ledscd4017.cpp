@@ -4,10 +4,11 @@
 // Use the daisy namespace to prevent having to type
 // daisy:: before all libdaisy functions
 using namespace daisy;
+using namespace daisy::seed;
 using namespace daisysp;
 
 // Declare a DaisySeed object called hardware
-DaisySeed hardware;
+DaisySeed hw;
 
 struct CD4017 {
     GPIO    clock;
@@ -16,34 +17,53 @@ struct CD4017 {
 };
 CD4017 counter;
 
+
+
+void AdvanceCounter()
+{
+    counter.clock.Write(true);
+    counter.clock.Write(false);
+    counter.position += 1;
+}
+
+void ResetCounter()
+{
+    counter.reset.Write(true);
+    counter.reset.Write(false);
+    counter.position = 0;
+}
+
+void InitCounter()
+{
+    counter.clock.Init(D0, GPIO::Mode::OUTPUT);
+    counter.reset.Init(D1, GPIO::Mode::OUTPUT);
+    ResetCounter();
+}
+
 int main(void)
 {
     // Configure and Initialize the Daisy Seed
-    hardware.Configure();
-    hardware.Init();
-    counter.clock.Init(D1, GPIO::Mode::OUTPUT);
-    counter.reset.Init(D2, GPIO::Mode::OUTPUT);
+    hw.Configure();
+    hw.Init();
+    InitCounter();
 
     // Loop forever
     for(;;) {
-        // Increment position, and wrap round if necessary, increment cd4017
-        counter.position += 1;
-        if ( counter.position > 7 ) {
-            counter.position = 0;
-            counter.reset.Write(True);
+
+        // Counter logic - advance but wrap around on step 8.
+        if ( counter.position == 8 ) {
+            // Reset 4017 and counter position
+            ResetCounter();
+            // Advance
+            AdvanceCounter();
         }
-        // If position is 0 then cd4017 output 0 is already high
-        // Otherwise, we set the next output to be high
-        if ( counter.position > 0 ) {
-            counter.clock.Write(True);
+        else if ( counter.position < 8 ) {
+            // Advance the counter
+            AdvanceCounter();
         }
 
-        // set clock to low, set reset to low if we have just reset
-        counter.clock.Write(False);
-        if ( counter.position == 0 ) {
-            counter.reset.Write(False);
-        }
+        // Wait for next step
+        System::Delay(600);
 
-        System::Delay(100);
     }
 }
